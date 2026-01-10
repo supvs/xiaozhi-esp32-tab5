@@ -340,7 +340,9 @@ void Application::HandleActivationDoneEvent() {
             touch_panel->SetBrightnessChangeCallback([](int value) {
                 auto backlight = Board::GetInstance().GetBacklight();
                 if (backlight != nullptr) {
-                    backlight->SetBrightness(static_cast<uint8_t>(value * 255 / 100));
+                    // value is 0-100, SetBrightness expects 0-100
+                    // Tab5Backlight handles inversion internally
+                    backlight->SetBrightness(static_cast<uint8_t>(value), true);
                 }
             });
             
@@ -349,11 +351,19 @@ void Application::HandleActivationDoneEvent() {
                 codec->SetOutputVolume(value);
             });
             
-            // Apply initial values
-            auto backlight = Board::GetInstance().GetBacklight();
-            if (backlight != nullptr) {
-                backlight->SetBrightness(static_cast<uint8_t>(settings.GetBrightness() * 255 / 100));
-            }
+            // Set rotation callback - toggle and reboot
+            touch_panel->SetRotationChangeCallback([this, display]() {
+                Settings rotation_settings("display", true);
+                bool current_rotation = rotation_settings.GetBool("landscape", false);  // Default to portrait
+                rotation_settings.SetBool("landscape", !current_rotation);
+                ESP_LOGI(TAG, "Rotation changed to %s, rebooting...", !current_rotation ? "landscape" : "portrait");
+                display->SetChatMessage("system", "Rebooting...");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                Reboot();
+            });
+            
+            // Apply initial values - brightness is already 0-100, SetBrightness expects 0-100
+            // Note: Initial brightness is already restored in board constructor via RestoreBrightness()
             codec->SetOutputVolume(settings.GetVolume());
             
             ESP_LOGI(TAG, "Touch button panel initialized with brightness=%d, volume=%d",

@@ -10,6 +10,7 @@
 #include "esp32_camera.h"
 #include "esp_video_init.h"
 #include "esp_cam_sensor_xclk.h"
+#include "settings.h"
 
 #include <esp_log.h>
 #include "esp_check.h"
@@ -19,6 +20,7 @@
 #include <esp_lcd_panel_vendor.h>
 #include <driver/i2c_master.h>
 #include <driver/spi_common.h>
+#include <driver/ledc.h>
 #include "i2c_device.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_lcd_touch_st7123.h"
@@ -83,6 +85,23 @@ public:
 
     uint8_t ReadOutSet() { return ReadReg(PI4IO_REG_OUT_SET); }
     void WriteOutSet(uint8_t value) { WriteReg(PI4IO_REG_OUT_SET, value); }
+};
+
+// Custom backlight for Tab5 that handles inversion in software
+// This ensures the brightness value (0-100) maps correctly:
+// 0 = darkest, 100 = brightest
+class Tab5Backlight : public PwmBacklight {
+public:
+    Tab5Backlight(gpio_num_t pin) : PwmBacklight(pin, false) {}  // No hardware invert
+    
+    void SetBrightnessImpl(uint8_t brightness) override {
+        // Invert in software: Tab5 backlight needs low duty for bright
+        uint8_t inverted = 100 - brightness;
+        // LEDC resolution set to 10bits, thus: 100% = 1023
+        uint32_t duty_cycle = (1023 * inverted) / 100;
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty_cycle);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    }
 };
 
 class M5StackTab5Board : public WifiBoard {
@@ -161,11 +180,15 @@ private:
     void InitializeGt911TouchPad() {
         ESP_LOGI(TAG, "Init GT911");
  
+        // Check rotation setting
+        Settings display_settings("display", false);
+        bool is_landscape = display_settings.GetBool("landscape", false);
+        
         /* Initialize Touch Panel */
         ESP_LOGI(TAG, "Initialize touch IO (I2C)");
         const esp_lcd_touch_config_t tp_cfg = {
-            .x_max = DISPLAY_WIDTH,
-            .y_max = DISPLAY_HEIGHT,
+            .x_max = is_landscape ? DISPLAY_HEIGHT : DISPLAY_WIDTH,
+            .y_max = is_landscape ? DISPLAY_WIDTH : DISPLAY_HEIGHT,
             .rst_gpio_num = GPIO_NUM_NC, 
             .int_gpio_num = TOUCH_INT_GPIO, 
             .levels = {
@@ -173,8 +196,8 @@ private:
                 .interrupt = 0,
             },
             .flags = {
-                .swap_xy = 0,
-                .mirror_x = 0,
+                .swap_xy = is_landscape ? 1 : 0,
+                .mirror_x = is_landscape ? 1 : 0,
                 .mirror_y = 0,
             },
         };
@@ -184,6 +207,8 @@ private:
         tp_io_config.scl_speed_hz = 100000;
         esp_lcd_new_panel_io_i2c(i2c_bus_, &tp_io_config, &tp_io_handle);
         esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &touch_);
+        
+        ESP_LOGI(TAG, "GT911 touch initialized in %s mode", is_landscape ? "landscape" : "portrait");
     }
 
     void InitializeIli9881cDisplay() {
@@ -258,8 +283,21 @@ private:
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
 
-        display_ = new MipiLcdDisplay(panel_io, panel, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X,
-                                      DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
+        // Check rotation setting
+        Settings display_settings("display", false);
+        bool is_landscape = display_settings.GetBool("landscape", false);  // Default to portrait
+        
+        if (is_landscape) {
+            // Landscape mode: swap width and height
+            display_ = new MipiLcdDisplay(panel_io, panel, DISPLAY_HEIGHT, DISPLAY_WIDTH, DISPLAY_OFFSET_X,
+                                          DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, true);
+            ESP_LOGI(TAG, "Display initialized in landscape mode (%dx%d)", DISPLAY_HEIGHT, DISPLAY_WIDTH);
+        } else {
+            // Portrait mode: normal
+            display_ = new MipiLcdDisplay(panel_io, panel, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X,
+                                          DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
+            ESP_LOGI(TAG, "Display initialized in portrait mode (%dx%d)", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        }
     }
 
     void InitializeSt7123Display() {
@@ -358,10 +396,21 @@ private:
             goto err;
         }
 
-        display_ = new MipiLcdDisplay(io, disp_panel, 720, 1280, DISPLAY_OFFSET_X,
-                                      DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
-
-        ESP_LOGI(TAG, "ST7123 Display initialized with resolution %dx%d", 720, 1280);
+        // Check rotation setting
+        Settings display_settings("display", false);
+        bool is_landscape = display_settings.GetBool("landscape", false);  // Default to portrait
+        
+        if (is_landscape) {
+            // Landscape mode: swap width and height
+            display_ = new MipiLcdDisplay(io, disp_panel, 1280, 720, DISPLAY_OFFSET_X,
+                                          DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, true);
+            ESP_LOGI(TAG, "ST7123 Display initialized in landscape mode (%dx%d)", 1280, 720);
+        } else {
+            // Portrait mode: normal
+            display_ = new MipiLcdDisplay(io, disp_panel, 720, 1280, DISPLAY_OFFSET_X,
+                                          DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
+            ESP_LOGI(TAG, "ST7123 Display initialized in portrait mode (%dx%d)", 720, 1280);
+        }
 
         return;
 
@@ -381,11 +430,15 @@ private:
     void InitializeSt7123TouchPad() {
         ESP_LOGI(TAG, "Init ST7123 Touch");
         
+        // Check rotation setting
+        Settings display_settings("display", false);
+        bool is_landscape = display_settings.GetBool("landscape", false);
+        
         /* Initialize Touch Panel */
         ESP_LOGI(TAG, "Initialize touch IO (I2C)");
         const esp_lcd_touch_config_t tp_cfg = {
-            .x_max = 720,
-            .y_max = 1280,
+            .x_max = is_landscape ? 1280 : 720,
+            .y_max = is_landscape ? 720 : 1280,
             .rst_gpio_num = GPIO_NUM_NC,
             .int_gpio_num = TOUCH_INT_GPIO,
             .levels = {
@@ -393,8 +446,8 @@ private:
                 .interrupt = 0,
             },
             .flags = {
-                .swap_xy = 0,
-                .mirror_x = 0,
+                .swap_xy = is_landscape ? 1 : 0,
+                .mirror_x = is_landscape ? 1 : 0,
                 .mirror_y = 0,
             },
         };
@@ -409,6 +462,8 @@ private:
         };
         ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_bus_, &tp_io_config, &tp_io_handle));
         ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_st7123(tp_io_handle, &tp_cfg, &touch_));
+        
+        ESP_LOGI(TAG, "ST7123 touch initialized in %s mode", is_landscape ? "landscape" : "portrait");
     }
 
     void InitializeDisplay() {
@@ -517,7 +572,7 @@ public:
     }
 
     virtual Backlight* GetBacklight() override {
-        static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
+        static Tab5Backlight backlight(DISPLAY_BACKLIGHT_PIN);
         return &backlight;
     }
 

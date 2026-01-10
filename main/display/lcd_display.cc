@@ -245,6 +245,7 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
 
     ESP_LOGI(TAG, "Initialize LVGL port");
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    port_cfg.task_priority = 2;        // Slightly higher priority
     lvgl_port_init(&port_cfg);
 
     ESP_LOGI(TAG, "Adding LCD display");
@@ -266,7 +267,7 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
         .flags = {
             .buff_dma = true,
             .buff_spiram = false,
-            .sw_rotate = true,
+            .sw_rotate = false,  // Disable software rotation to save memory
         },
     };
 
@@ -497,9 +498,9 @@ void LcdDisplay::SetupUI() {
     lv_label_set_text(emoji_label_, FONT_AWESOME_MICROCHIP_AI);
 }
 #if CONFIG_IDF_TARGET_ESP32P4
-#define  MAX_MESSAGES 40
+#define  MAX_MESSAGES 20  // Reduced for better scroll performance
 #else
-#define  MAX_MESSAGES 20
+#define  MAX_MESSAGES 15
 #endif
 void LcdDisplay::SetChatMessage(const char* role, const char* content) {
     DisplayLockGuard lock(this);

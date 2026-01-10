@@ -23,6 +23,7 @@ public:
     void SetAbortButtonCallback(std::function<void()> callback);
     void SetBrightnessChangeCallback(std::function<void(int)> callback);
     void SetVolumeChangeCallback(std::function<void(int)> callback);
+    void SetRotationChangeCallback(std::function<void()> callback);
 
     // Get/Set current values
     int GetBrightness() const;
@@ -48,6 +49,10 @@ private:
     lv_obj_t* volume_slider_ = nullptr;
     lv_obj_t* volume_label_ = nullptr;
     
+    // 旋转按钮
+    lv_obj_t* rotation_btn_ = nullptr;
+    lv_obj_t* rotation_icon_ = nullptr;
+    
     // 唤醒/对话按钮（底部中间）
     lv_obj_t* speech_btn_ = nullptr;
     lv_obj_t* speech_icon_ = nullptr;
@@ -66,6 +71,7 @@ private:
     std::function<void()> abort_callback_;
     std::function<void(int)> brightness_callback_;
     std::function<void(int)> volume_callback_;
+    std::function<void()> rotation_callback_;
 
     void CreateSettingsButton();
     void CreateSettingsPopup();
@@ -73,6 +79,7 @@ private:
     void CreateAbortButton();
     void CreateBrightnessSlider();
     void CreateVolumeSlider();
+    void CreateRotationButton();
     void UpdateSpeechButtonState();
     void UpdateVolumeIcon();
     void ToggleSettingsPopup();
@@ -85,6 +92,7 @@ private:
     static void OnBrightnessReleased(lv_event_t* e);
     static void OnVolumeChanged(lv_event_t* e);
     static void OnVolumeReleased(lv_event_t* e);
+    static void OnRotationButtonClicked(lv_event_t* e);
 };
 
 #endif // TOUCH_BUTTON_PANEL_H
