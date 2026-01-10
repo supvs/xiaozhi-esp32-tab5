@@ -1,6 +1,7 @@
 #include "application.h"
 #include "board.h"
 #include "display.h"
+#include "lcd_display.h"
 #include "system_info.h"
 #include "audio_codec.h"
 #include "mqtt_protocol.h"
@@ -9,6 +10,7 @@
 #include "mcp_server.h"
 #include "assets.h"
 #include "settings.h"
+#include "touch_button_settings.h"
 
 #include <cstring>
 #include <esp_log.h>
@@ -306,6 +308,46 @@ void Application::HandleActivationDoneEvent() {
     std::string message = std::string(Lang::Strings::VERSION) + ota_->GetCurrentVersion();
     display->ShowNotification(message.c_str());
     display->SetChatMessage("system", "");
+
+    // Initialize touch button panel for LCD displays
+    auto lcd_display = dynamic_cast<LcdDisplay*>(display);
+    if (lcd_display != nullptr) {
+        lcd_display->InitTouchButtonPanel();
+        auto touch_panel = lcd_display->GetTouchButtonPanel();
+        if (touch_panel != nullptr) {
+            // Load saved settings
+            TouchButtonSettings settings;
+            touch_panel->SetBrightness(settings.GetBrightness());
+            touch_panel->SetVolume(settings.GetVolume());
+            
+            // Set callbacks
+            touch_panel->SetSpeechButtonCallback([this]() {
+                ToggleChatState();
+            });
+            
+            touch_panel->SetBrightnessChangeCallback([](int value) {
+                auto backlight = Board::GetInstance().GetBacklight();
+                if (backlight != nullptr) {
+                    backlight->SetBrightness(static_cast<uint8_t>(value * 255 / 100));
+                }
+            });
+            
+            auto codec = Board::GetInstance().GetAudioCodec();
+            touch_panel->SetVolumeChangeCallback([codec](int value) {
+                codec->SetOutputVolume(value);
+            });
+            
+            // Apply initial values
+            auto backlight = Board::GetInstance().GetBacklight();
+            if (backlight != nullptr) {
+                backlight->SetBrightness(static_cast<uint8_t>(settings.GetBrightness() * 255 / 100));
+            }
+            codec->SetOutputVolume(settings.GetVolume());
+            
+            ESP_LOGI(TAG, "Touch button panel initialized with brightness=%d, volume=%d",
+                     settings.GetBrightness(), settings.GetVolume());
+        }
+    }
 
     // Play the success sound to indicate the device is ready
     audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
@@ -801,6 +843,15 @@ void Application::HandleStateChangedEvent() {
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
+    
+    // Update touch button panel state if available
+    auto lcd_display = dynamic_cast<LcdDisplay*>(display);
+    if (lcd_display != nullptr) {
+        auto touch_panel = lcd_display->GetTouchButtonPanel();
+        if (touch_panel != nullptr) {
+            touch_panel->UpdateDeviceState(new_state);
+        }
+    }
     
     switch (new_state) {
         case kDeviceStateUnknown:

@@ -1194,3 +1194,24 @@ void LcdDisplay::SetHideSubtitle(bool hide) {
         }
     }
 }
+
+void LcdDisplay::InitTouchButtonPanel() {
+    DisplayLockGuard lock(this);
+    
+    if (touch_button_panel_ != nullptr) {
+        return;  // Already initialized
+    }
+    
+    auto screen = lv_screen_active();
+    if (screen == nullptr) {
+        ESP_LOGE(TAG, "No active screen for touch button panel");
+        return;
+    }
+    
+    touch_button_panel_ = std::make_unique<TouchButtonPanel>(screen, width_, height_);
+    ESP_LOGI(TAG, "Touch button panel initialized");
+}
+
+TouchButtonPanel* LcdDisplay::GetTouchButtonPanel() {
+    return touch_button_panel_.get();
+}

@@ -3,6 +3,7 @@
 
 #include "lvgl_display.h"
 #include "gif/lvgl_gif.h"
+#include "touch_button_panel.h"
 
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -34,6 +35,7 @@ protected:
     lv_obj_t* chat_message_label_ = nullptr;
     esp_timer_handle_t preview_timer_ = nullptr;
     std::unique_ptr<LvglImage> preview_image_cached_ = nullptr;
+    std::unique_ptr<TouchButtonPanel> touch_button_panel_ = nullptr;
     bool hide_subtitle_ = false;  // Control whether to hide chat messages/subtitles
 
     void InitializeLcdThemes();
@@ -56,6 +58,10 @@ public:
     
     // Set whether to hide chat messages/subtitles
     void SetHideSubtitle(bool hide);
+    
+    // Touch button panel methods
+    void InitTouchButtonPanel();
+    TouchButtonPanel* GetTouchButtonPanel();
 };
 
 // SPI LCD display
