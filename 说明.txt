@@ -2,3 +2,7 @@
 idf.py set-target esp32p4
 idf.py build
 idf.py flash monitor
+
+
+发布项目：
+python ./scripts/release.py m5stack-tab5

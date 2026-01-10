@@ -22,6 +22,7 @@
 #include "i2c_device.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_lcd_touch_st7123.h"
+#include <esp_lvgl_port.h>
 #include <cstring>
 
 #define TAG "M5StackTab5Board"
@@ -423,6 +424,16 @@ private:
             ESP_LOGI(TAG, "ST7123 not found at 0x%02X (ret=0x%x), using default ST7703+GT911", ST7123_TOUCH_I2C_ADDRESS, ret);
             InitializeIli9881cDisplay();
             InitializeGt911TouchPad();
+        }
+        
+        // Register touch panel with LVGL
+        if (touch_ != nullptr) {
+            const lvgl_port_touch_cfg_t touch_cfg = {
+                .disp = display_->GetLvglDisplay(),
+                .handle = touch_,
+            };
+            lvgl_port_add_touch(&touch_cfg);
+            ESP_LOGI(TAG, "Touch panel registered with LVGL");
         }
     }
 

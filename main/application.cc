@@ -325,6 +325,18 @@ void Application::HandleActivationDoneEvent() {
                 ToggleChatState();
             });
             
+            // Set abort button callback - abort the current conversation
+            touch_panel->SetAbortButtonCallback([this]() {
+                auto state = GetDeviceState();
+                if (state == kDeviceStateSpeaking) {
+                    AbortSpeaking(kAbortReasonNone);
+                } else if (state == kDeviceStateListening) {
+                    if (protocol_) {
+                        protocol_->CloseAudioChannel();
+                    }
+                }
+            });
+            
             touch_panel->SetBrightnessChangeCallback([](int value) {
                 auto backlight = Board::GetInstance().GetBacklight();
                 if (backlight != nullptr) {

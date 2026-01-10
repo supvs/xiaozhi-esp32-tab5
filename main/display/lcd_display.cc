@@ -265,7 +265,7 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
         },
         .flags = {
             .buff_dma = true,
-            .buff_spiram =false,
+            .buff_spiram = false,
             .sw_rotate = true,
         },
     };
@@ -460,9 +460,11 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_border_width(content_, 0, 0);
     lv_obj_set_style_bg_color(content_, lvgl_theme->chat_background_color(), 0); // Background for chat area
 
-    // Enable scrolling for chat content
+    // Enable scrolling for chat content - optimized for performance
     lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_scroll_dir(content_, LV_DIR_VER);
+    lv_obj_add_flag(content_, LV_OBJ_FLAG_SCROLL_MOMENTUM);  // Enable momentum scrolling
+    lv_obj_add_flag(content_, LV_OBJ_FLAG_SCROLL_ELASTIC);   // Enable elastic scrolling
     
     // Create a flex container for chat messages
     lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN);
@@ -557,6 +559,8 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
     lv_obj_set_scrollbar_mode(msg_bubble, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_border_width(msg_bubble, 0, 0);
     lv_obj_set_style_pad_all(msg_bubble, lvgl_theme->spacing(4), 0);
+    // Disable scroll on bubble for better performance
+    lv_obj_clear_flag(msg_bubble, LV_OBJ_FLAG_SCROLLABLE);
 
     // Create the message text
     lv_obj_t* msg_text = lv_label_create(msg_bubble);
@@ -591,10 +595,11 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
     lv_obj_set_height(msg_bubble, LV_SIZE_CONTENT);
 
     // Set alignment and style based on message role
+    // Use LV_OPA_COVER instead of LV_OPA_70 for better performance (no alpha blending)
     if (strcmp(role, "user") == 0) {
         // User messages are right-aligned with green background
         lv_obj_set_style_bg_color(msg_bubble, lvgl_theme->user_bubble_color(), 0);
-        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_70, 0);
+        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_COVER, 0);  // Opaque for performance
         // Set text color for contrast
         lv_obj_set_style_text_color(msg_text, lvgl_theme->text_color(), 0);
         
@@ -610,7 +615,7 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
     } else if (strcmp(role, "assistant") == 0) {
         // Assistant messages are left-aligned with white background
         lv_obj_set_style_bg_color(msg_bubble, lvgl_theme->assistant_bubble_color(), 0);
-        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_70, 0);
+        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_COVER, 0);  // Opaque for performance
         // Set text color for contrast
         lv_obj_set_style_text_color(msg_text, lvgl_theme->text_color(), 0);
         
@@ -626,7 +631,7 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
     } else if (strcmp(role, "system") == 0) {
         // System messages are center-aligned with light gray background
         lv_obj_set_style_bg_color(msg_bubble, lvgl_theme->system_bubble_color(), 0);
-        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_70, 0);
+        lv_obj_set_style_bg_opa(msg_bubble, LV_OPA_COVER, 0);  // Opaque for performance
         // Set text color for contrast
         lv_obj_set_style_text_color(msg_text, lvgl_theme->system_text_color(), 0);
         
@@ -652,6 +657,8 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
         lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(container, 0, 0);
         lv_obj_set_style_pad_all(container, 0, 0);
+        lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
+        lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
         
         // Move the message bubble into this container
         lv_obj_set_parent(msg_bubble, container);
@@ -659,8 +666,8 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
         // Right align the bubble in the container
         lv_obj_align(msg_bubble, LV_ALIGN_RIGHT_MID, -25, 0);
         
-        // Auto-scroll to this container
-        lv_obj_scroll_to_view_recursive(container, LV_ANIM_ON);
+        // Auto-scroll to this container (no animation for performance)
+        lv_obj_scroll_to_view_recursive(container, LV_ANIM_OFF);
     } else if (strcmp(role, "system") == 0) {
         // Create full-width container for system messages to ensure center alignment
         lv_obj_t* container = lv_obj_create(content_);
@@ -670,17 +677,19 @@ void LcdDisplay::SetChatMessage(const char* role, const char* content) {
         lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_width(container, 0, 0);
         lv_obj_set_style_pad_all(container, 0, 0);
+        lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
+        lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
         
         lv_obj_set_parent(msg_bubble, container);
         lv_obj_align(msg_bubble, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_scroll_to_view_recursive(container, LV_ANIM_ON);
+        lv_obj_scroll_to_view_recursive(container, LV_ANIM_OFF);
     } else {
         // For assistant messages
         // Left align assistant messages
         lv_obj_align(msg_bubble, LV_ALIGN_LEFT_MID, 0, 0);
 
-        // Auto-scroll to the message bubble
-        lv_obj_scroll_to_view_recursive(msg_bubble, LV_ANIM_ON);
+        // Auto-scroll to the message bubble (no animation for performance)
+        lv_obj_scroll_to_view_recursive(msg_bubble, LV_ANIM_OFF);
     }
     
     // Store reference to the latest message label
@@ -704,10 +713,11 @@ void LcdDisplay::SetPreviewImage(std::unique_ptr<LvglImage> image) {
     lv_obj_set_scrollbar_mode(img_bubble, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_border_width(img_bubble, 0, 0);
     lv_obj_set_style_pad_all(img_bubble, lvgl_theme->spacing(4), 0);
+    lv_obj_clear_flag(img_bubble, LV_OBJ_FLAG_SCROLLABLE);  // Disable scroll for performance
     
     // Set image bubble background color (similar to system message)
     lv_obj_set_style_bg_color(img_bubble, lvgl_theme->assistant_bubble_color(), 0);
-    lv_obj_set_style_bg_opa(img_bubble, LV_OPA_70, 0);
+    lv_obj_set_style_bg_opa(img_bubble, LV_OPA_COVER, 0);  // Opaque for performance
     
     // Set custom attribute to mark bubble type
     lv_obj_set_user_data(img_bubble, (void*)"image");
@@ -767,8 +777,8 @@ void LcdDisplay::SetPreviewImage(std::unique_ptr<LvglImage> image) {
     // Left align the image bubble like assistant messages
     lv_obj_align(img_bubble, LV_ALIGN_LEFT_MID, 0, 0);
 
-    // Auto-scroll to the image bubble
-    lv_obj_scroll_to_view_recursive(img_bubble, LV_ANIM_ON);
+    // Auto-scroll to the image bubble (no animation for performance)
+    lv_obj_scroll_to_view_recursive(img_bubble, LV_ANIM_OFF);
 }
 #else
 void LcdDisplay::SetupUI() {
