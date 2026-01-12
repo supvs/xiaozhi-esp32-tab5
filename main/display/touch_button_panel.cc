@@ -304,7 +304,7 @@ void TouchButtonPanel::UpdateDeviceState(DeviceState state) {
             break;
             
         case kDeviceStateListening:
-            // 聆听状态：显示"关闭对话"按钮（蓝色，X图标）
+            // 聆听状态：显示"关闭对话"按钮（红色，X图标）
             if (settings_btn_) lv_obj_add_flag(settings_btn_, LV_OBJ_FLAG_HIDDEN);
             if (settings_popup_) {
                 lv_obj_add_flag(settings_popup_, LV_OBJ_FLAG_HIDDEN);
@@ -313,16 +313,16 @@ void TouchButtonPanel::UpdateDeviceState(DeviceState state) {
             if (speech_btn_) lv_obj_add_flag(speech_btn_, LV_OBJ_FLAG_HIDDEN);
             if (abort_btn_) {
                 lv_obj_clear_flag(abort_btn_, LV_OBJ_FLAG_HIDDEN);
-                // 蓝色按钮 + X图标 = 关闭对话
-                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0x2196F3), 0);  // 蓝色
-                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0x1976D2), LV_STATE_PRESSED);
+                // 红色按钮 + X图标 = 关闭对话
+                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0xF44336), 0);  // 红色
+                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0xD32F2F), LV_STATE_PRESSED);
                 if (abort_icon_) lv_label_set_text(abort_icon_, FONT_AWESOME_XMARK);
             }
             visible_ = true;
             break;
             
         case kDeviceStateSpeaking:
-            // 说话状态：显示"打断对话"按钮（红色，停止图标）
+            // 说话状态：显示"打断对话"按钮（蓝色，停止图标）
             if (settings_btn_) lv_obj_add_flag(settings_btn_, LV_OBJ_FLAG_HIDDEN);
             if (settings_popup_) {
                 lv_obj_add_flag(settings_popup_, LV_OBJ_FLAG_HIDDEN);
@@ -331,9 +331,9 @@ void TouchButtonPanel::UpdateDeviceState(DeviceState state) {
             if (speech_btn_) lv_obj_add_flag(speech_btn_, LV_OBJ_FLAG_HIDDEN);
             if (abort_btn_) {
                 lv_obj_clear_flag(abort_btn_, LV_OBJ_FLAG_HIDDEN);
-                // 红色按钮 + 停止图标 = 打断对话
-                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0xF44336), 0);  // 红色
-                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0xD32F2F), LV_STATE_PRESSED);
+                // 蓝色按钮 + 停止图标 = 打断对话
+                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0x2196F3), 0);  // 蓝色
+                lv_obj_set_style_bg_color(abort_btn_, lv_color_hex(0x1976D2), LV_STATE_PRESSED);
                 if (abort_icon_) lv_label_set_text(abort_icon_, FONT_AWESOME_STOP);
             }
             visible_ = true;
