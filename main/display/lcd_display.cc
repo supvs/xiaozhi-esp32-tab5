@@ -898,7 +898,7 @@ void LcdDisplay::SetupUI() {
     lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
     lv_obj_align(status_label_, LV_ALIGN_CENTER, 0, 0);
 
-    /* Top layer: Bottom bar - fixed at bottom, minimum height 48, height can be adaptive */
+    /* Top layer: Bottom bar - fixed above the touch button area */
     bottom_bar_ = lv_obj_create(screen);
     lv_obj_set_width(bottom_bar_, LV_HOR_RES);
     lv_obj_set_height(bottom_bar_, LV_SIZE_CONTENT);
@@ -911,7 +911,8 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_pad_left(bottom_bar_, lvgl_theme->spacing(4), 0);
     lv_obj_set_style_pad_right(bottom_bar_, lvgl_theme->spacing(4), 0);
     lv_obj_set_style_border_width(bottom_bar_, 0, 0);
-    lv_obj_align(bottom_bar_, LV_ALIGN_BOTTOM_MID, 0, 0);
+    // Position above the touch button (button is 90px high + 20px from bottom + extra margin)
+    lv_obj_align(bottom_bar_, LV_ALIGN_BOTTOM_MID, 0, -260);
 
     /* chat_message_label_ placed in bottom_bar_ and vertically centered */
     chat_message_label_ = lv_label_create(bottom_bar_);
@@ -1220,6 +1221,7 @@ void LcdDisplay::InitTouchButtonPanel() {
     }
     
     touch_button_panel_ = std::make_unique<TouchButtonPanel>(screen, width_, height_);
+    
     ESP_LOGI(TAG, "Touch button panel initialized");
 }
 

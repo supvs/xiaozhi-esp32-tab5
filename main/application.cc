@@ -340,9 +340,12 @@ void Application::HandleActivationDoneEvent() {
             touch_panel->SetBrightnessChangeCallback([](int value) {
                 auto backlight = Board::GetInstance().GetBacklight();
                 if (backlight != nullptr) {
-                    // value is 0-100, SetBrightness expects 0-100
-                    // Tab5Backlight handles inversion internally
-                    backlight->SetBrightness(static_cast<uint8_t>(value), true);
+                    // Tab5 backlight is inverted: slider 100 should be brightest
+                    // But with output_invert=true, high brightness value = dark
+                    // So we invert the value here
+                    // Don't save to NVS here - it's saved in OnBrightnessReleased
+                    int inverted = 100 - value;
+                    backlight->SetBrightness(static_cast<uint8_t>(inverted), false);
                 }
             });
             

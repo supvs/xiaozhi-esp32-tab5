@@ -236,47 +236,11 @@ void TouchButtonPanel::CreateVolumeSlider() {
 }
 
 void TouchButtonPanel::CreateRotationButton() {
-    // 旋转按钮容器
-    lv_obj_t* rotation_container = lv_obj_create(settings_popup_);
-    lv_obj_set_size(rotation_container, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_bg_opa(rotation_container, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(rotation_container, 0, 0);
-    lv_obj_set_style_pad_all(rotation_container, 8, 0);
-    lv_obj_set_flex_flow(rotation_container, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(rotation_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_scrollbar_mode(rotation_container, LV_SCROLLBAR_MODE_OFF);
-    
-    // 旋转按钮
-    rotation_btn_ = lv_btn_create(rotation_container);
-    lv_obj_set_size(rotation_btn_, 160, 44);
-    lv_obj_set_style_radius(rotation_btn_, 22, 0);
-    lv_obj_set_style_bg_color(rotation_btn_, lv_color_hex(0x4CAF50), 0);
-    lv_obj_set_style_bg_color(rotation_btn_, lv_color_hex(0x388E3C), LV_STATE_PRESSED);
-    lv_obj_set_style_border_width(rotation_btn_, 0, 0);
-    
-    // 按钮内容容器
-    lv_obj_t* btn_content = lv_obj_create(rotation_btn_);
-    lv_obj_set_size(btn_content, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_bg_opa(btn_content, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(btn_content, 0, 0);
-    lv_obj_set_style_pad_all(btn_content, 0, 0);
-    lv_obj_set_flex_flow(btn_content, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(btn_content, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(btn_content, LV_OBJ_FLAG_CLICKABLE);
-    
-    // 旋转图标
-    rotation_icon_ = lv_label_create(btn_content);
-    lv_label_set_text(rotation_icon_, FONT_AWESOME_ARROWS_ROTATE);
-    lv_obj_set_style_text_color(rotation_icon_, lv_color_white(), 0);
-    lv_obj_set_style_text_font(rotation_icon_, &font_awesome_30_4, 0);
-    lv_obj_set_style_pad_right(rotation_icon_, 8, 0);
-    
-    // 旋转文字
-    lv_obj_t* rotation_label = lv_label_create(btn_content);
-    lv_label_set_text(rotation_label, "Rotate");
-    lv_obj_set_style_text_color(rotation_label, lv_color_white(), 0);
-    
-    lv_obj_add_event_cb(rotation_btn_, OnRotationButtonClicked, LV_EVENT_CLICKED, this);
+    // MIPI DSI displays don't support software rotation well
+    // Rotation causes screen corruption due to memory/timing issues
+    // This feature is disabled for now
+    rotation_btn_ = nullptr;
+    rotation_icon_ = nullptr;
 }
 
 void TouchButtonPanel::ToggleSettingsPopup() {
