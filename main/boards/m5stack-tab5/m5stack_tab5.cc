@@ -187,8 +187,8 @@ private:
         /* Initialize Touch Panel */
         ESP_LOGI(TAG, "Initialize touch IO (I2C)");
         const esp_lcd_touch_config_t tp_cfg = {
-            .x_max = is_landscape ? DISPLAY_HEIGHT : DISPLAY_WIDTH,
-            .y_max = is_landscape ? DISPLAY_WIDTH : DISPLAY_HEIGHT,
+            .x_max = static_cast<uint16_t>(is_landscape ? DISPLAY_HEIGHT : DISPLAY_WIDTH),
+            .y_max = static_cast<uint16_t>(is_landscape ? DISPLAY_WIDTH : DISPLAY_HEIGHT),
             .rst_gpio_num = GPIO_NUM_NC, 
             .int_gpio_num = TOUCH_INT_GPIO, 
             .levels = {
@@ -196,8 +196,8 @@ private:
                 .interrupt = 0,
             },
             .flags = {
-                .swap_xy = is_landscape ? 1 : 0,
-                .mirror_x = is_landscape ? 1 : 0,
+                .swap_xy = static_cast<unsigned int>(is_landscape ? 1 : 0),
+                .mirror_x = static_cast<unsigned int>(is_landscape ? 1 : 0),
                 .mirror_y = 0,
             },
         };
@@ -314,6 +314,10 @@ private:
         st7123_vendor_config_t vendor_config;
         esp_lcd_panel_dev_config_t lcd_dev_config;
         
+        // Check rotation setting at the top to avoid goto issues
+        Settings display_settings("display", false);
+        bool is_landscape = display_settings.GetBool("landscape", false);  // Default to portrait
+        
         memset(&bus_config, 0, sizeof(bus_config));
         memset(&dbi_config, 0, sizeof(dbi_config));
         memset(&dpi_config, 0, sizeof(dpi_config));
@@ -396,10 +400,6 @@ private:
             goto err;
         }
 
-        // Check rotation setting
-        Settings display_settings("display", false);
-        bool is_landscape = display_settings.GetBool("landscape", false);  // Default to portrait
-        
         if (is_landscape) {
             // Landscape mode: swap width and height
             display_ = new MipiLcdDisplay(io, disp_panel, 1280, 720, DISPLAY_OFFSET_X,
@@ -437,8 +437,8 @@ private:
         /* Initialize Touch Panel */
         ESP_LOGI(TAG, "Initialize touch IO (I2C)");
         const esp_lcd_touch_config_t tp_cfg = {
-            .x_max = is_landscape ? 1280 : 720,
-            .y_max = is_landscape ? 720 : 1280,
+            .x_max = static_cast<uint16_t>(is_landscape ? 1280 : 720),
+            .y_max = static_cast<uint16_t>(is_landscape ? 720 : 1280),
             .rst_gpio_num = GPIO_NUM_NC,
             .int_gpio_num = TOUCH_INT_GPIO,
             .levels = {
@@ -446,8 +446,8 @@ private:
                 .interrupt = 0,
             },
             .flags = {
-                .swap_xy = is_landscape ? 1 : 0,
-                .mirror_x = is_landscape ? 1 : 0,
+                .swap_xy = static_cast<unsigned int>(is_landscape ? 1 : 0),
+                .mirror_x = static_cast<unsigned int>(is_landscape ? 1 : 0),
                 .mirror_y = 0,
             },
         };
