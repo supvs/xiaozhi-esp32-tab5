@@ -2,3 +2,5 @@
 
 增加了触摸按钮唤醒对话，增加了滑动调节声音和亮度
 
+
+<img src="demo.jpg" alt="demo" width="320">
